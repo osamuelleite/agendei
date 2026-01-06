@@ -10,19 +10,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # Cria um banco Postgres só para o teste do GitHub
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: agendei_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     defaults:
       run:
-        working-directory: ./backend  # Importante: avisa que o pom.xml está na subpasta
+        working-directory: ./backend
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: 'temurin'
           cache: maven
 
       - name: Build with Maven
+        # O comando continua o mesmo
         run: mvn -B package --file pom.xml
