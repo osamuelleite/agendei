@@ -1,0 +1,29 @@
+services:
+  # O Banco de Dados (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: agendei-db
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=agendei_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # A Interface Visual para ver o Banco (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-agendei
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
