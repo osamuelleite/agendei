@@ -17,11 +17,10 @@ public class ProfissionalController {
         this.service = service;
     }
     @PostMapping
-    public ResponseEntity<Profissional> cadastrar(RequestBody Profissional profissional){
+    public ResponseEntity<Profissional> cadastrar(@RequestBody Profissional profissional){
         //recebe o JSON e transforma em um objeto Java (@requestBody)
         Profissional novoProfissional = service.cadastrar(profissional);
         //Responde com status 201 Created e o objeto é criado
         return ResponseEntity.status(HttpStatus.CREATED).body(novoProfissional);
     }
-
 }
