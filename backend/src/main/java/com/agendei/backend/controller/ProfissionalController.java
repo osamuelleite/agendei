@@ -21,6 +21,7 @@ public class ProfissionalController {
         //recebe o JSON e transforma em um objeto Java (@requestBody)
         Profissional novoProfissional = service.cadastrar(profissional);
         //Responde com status 201 Created e o objeto é criado
+        //comentario
         return ResponseEntity.status(HttpStatus.CREATED).body(novoProfissional);
     }
 }
