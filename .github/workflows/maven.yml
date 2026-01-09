@@ -1,0 +1,52 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "main", "develop", "feature/*" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Cria o banco Postgres temporário para o teste
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: agendei_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Usar Java 21 (LTS) que é estável
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # 2. O Pulo do Gato: Passamos as configurações do banco no comando (-D)
+      # Isso sobrescreve o application.properties apenas durante este teste
+      - name: Build with Maven
+        run: >
+          mvn -B package --file pom.xml
+          -Dspring.datasource.url=jdbc:postgresql://localhost:5432/agendei_db
+          -Dspring.datasource.username=admin
+          -Dspring.datasource.password=admin
+          -Dspring.datasource.driver-class-name=org.postgresql.Driver
