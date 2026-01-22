@@ -15,7 +15,7 @@ public class ProfissionalService {
     private final ProfissionalRepository repository;
 
     public ProfissionalService(ProfissionalRepository repository) {
-        this.repository = repository;
+        this.repository = repository;// facilita o ciclo de vida da instancia - conceito de injeção de dependencias
     }
 
     public ProfissionalResponseDTO cadastrar(ProfissionalRequestDTO dto) {
