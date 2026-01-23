@@ -8,14 +8,17 @@ import com.agendei.backend.repository.ProfissionalRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 public class ProfissionalService {
 
     private final ProfissionalRepository repository;
+    private final PasswordEncoder passwordEncoder;
 
-    public ProfissionalService(ProfissionalRepository repository) {
+    public ProfissionalService(ProfissionalRepository repository, PasswordEncoder passwordEncoder) {
         this.repository = repository;// facilita o ciclo de vida da instancia - conceito de injeção de dependencias
+        this.passwordEncoder = passwordEncoder;
     }
 
     public ProfissionalResponseDTO cadastrar(ProfissionalRequestDTO dto) {
@@ -29,7 +32,10 @@ public class ProfissionalService {
         Profissional entidade = new Profissional();
         entidade.setNome(dto.getNome());
         entidade.setEmail(dto.getEmail());
-        entidade.setSenha(dto.getSenha());
+        // pega a senha crua e transforma no hash
+        String senhaCriptografada = passwordEncoder.encode(dto.getSenha());
+        entidade.setSenha(senhaCriptografada);
+
         entidade.setEspecialidade(dto.getEspecialidade());
 
         // 3. Salvar no Banco
