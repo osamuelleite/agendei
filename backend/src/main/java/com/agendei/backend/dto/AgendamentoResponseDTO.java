@@ -11,7 +11,8 @@ public class AgendamentoResponseDTO {
     private LocalDateTime dataHora;
     private String clienteNome;
     private String observacao;
-    private String nomeProfissional; // Vamos devolver só o nome, fica mais limpo
+    private String nomeProfissional;
+    private String status;
 
     // Construtor que converte a Entidade em DTO
     public AgendamentoResponseDTO(Agendamento agendamento) {
@@ -20,5 +21,6 @@ public class AgendamentoResponseDTO {
         this.clienteNome = agendamento.getClienteNome();
         this.observacao = agendamento.getObservacao();
         this.nomeProfissional = agendamento.getProfissional().getNome();
+        this.status = agendamento.getStatus().name();
     }
 }

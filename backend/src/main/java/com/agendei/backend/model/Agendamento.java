@@ -1,5 +1,6 @@
 package com.agendei.backend.model;
 
+import com.agendei.backend.model.enums.StatusAgendamento;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -14,15 +15,17 @@ public class Agendamento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Data e Hora do agendamento (Ex: 2025-10-20T14:30:00)
     private LocalDateTime dataHora;
 
-    private String clienteNome; // Quem agendou? (Futuramente pode ser uma tabela User)
+    private String clienteNome;
 
-    private String observacao; // Ex: "Corte de cabelo e barba"
+    private String observacao;
 
-    // --- O RELACIONAMENTO MÁGICO ---
-    @ManyToOne // Muitos agendamentos para Um profissional
-    @JoinColumn(name = "id_profissional") // Cria a coluna 'id_profissional' no banco (Chave Estrangeira)
+    // --- O CAMPO NOVO QUE TINHA SUMIDO ---
+    @Enumerated(EnumType.STRING)
+    private StatusAgendamento status = StatusAgendamento.PENDENTE; // Nasce como PENDENTE
+
+    @ManyToOne
+    @JoinColumn(name = "id_profissional")
     private Profissional profissional;
 }

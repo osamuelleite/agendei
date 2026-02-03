@@ -63,4 +63,31 @@ public class AgendamentoService {
                 .map(AgendamentoResponseDTO::new)
                 .toList();
     }
+    // Metodo para confirmar
+    public AgendamentoResponseDTO confirmarAgendamento(Long idAgendamento, String emailProfissional) {
+        return alterarStatus(idAgendamento, emailProfissional, com.agendei.backend.model.enums.StatusAgendamento.CONFIRMADO);
+    }
+
+    // Metodo para cancelar
+    public AgendamentoResponseDTO cancelarAgendamento(Long idAgendamento, String emailProfissional) {
+        return alterarStatus(idAgendamento, emailProfissional, com.agendei.backend.model.enums.StatusAgendamento.CANCELADO);
+    }
+
+    // Metodo auxiliar (privado) para evitar repetir código
+    private AgendamentoResponseDTO alterarStatus(Long id, String emailProfissional, com.agendei.backend.model.enums.StatusAgendamento novoStatus) {
+        // 1. Busca o agendamento
+        Agendamento agendamento = agendamentoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado"));
+
+        // 2. SEGURANÇA: Verifica se o agendamento pertence ao profissional logado
+        if (!agendamento.getProfissional().getEmail().equals(emailProfissional)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para alterar esse agendamento");
+        }
+
+        // 3. Atualiza e salva
+        agendamento.setStatus(novoStatus);
+        agendamentoRepository.save(agendamento);
+
+        return new AgendamentoResponseDTO(agendamento);
+    }
 }
