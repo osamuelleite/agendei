@@ -6,10 +6,7 @@ import com.agendei.backend.service.ProfissionalService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/profissionais")
@@ -22,14 +19,14 @@ public class ProfissionalController {
     }
 
     @PostMapping
-    // 1. Mudamos de "Profissional" para "ProfissionalRequestDTO"
-    // 2. Adicionamos @Valid para ativar as regras (tamanho, notblank, email)
     public ResponseEntity<ProfissionalResponseDTO> cadastrar(@RequestBody @Valid ProfissionalRequestDTO dto) {
-
-        // Agora o tipo bate com o que o Service espera
         ProfissionalResponseDTO novoProfissional = service.cadastrar(dto);
-
-        // Retorna 201 Created e o DTO de resposta (que não tem a senha)
         return ResponseEntity.status(HttpStatus.CREATED).body(novoProfissional);
+    }
+
+    // --- NOVO METODO ---
+    @GetMapping
+    public ResponseEntity<String> testeDeSeguranca() {
+        return ResponseEntity.ok("Parabéns! Se você está lendo isso, seu Token JWT foi aceito e você está autenticado.");
     }
 }
