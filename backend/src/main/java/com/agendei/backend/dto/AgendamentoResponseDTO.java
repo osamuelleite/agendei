@@ -13,6 +13,8 @@ public class AgendamentoResponseDTO {
     private String observacao;
     private String nomeProfissional;
     private String status;
+    private String nomeServico;
+    private java.math.BigDecimal preco;
 
     // Construtor que converte a Entidade em DTO
     public AgendamentoResponseDTO(Agendamento agendamento) {
@@ -22,5 +24,10 @@ public class AgendamentoResponseDTO {
         this.observacao = agendamento.getObservacao();
         this.nomeProfissional = agendamento.getProfissional().getNome();
         this.status = agendamento.getStatus().name();
+        if (agendamento.getServico() != null) {
+            this.nomeServico = agendamento.getServico().getNome();
+            this.preco = agendamento.getServico().getPreco();
+        }
     }
+
 }

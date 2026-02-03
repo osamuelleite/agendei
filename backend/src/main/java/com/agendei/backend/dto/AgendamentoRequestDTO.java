@@ -17,8 +17,11 @@ public class AgendamentoRequestDTO {
     @NotBlank(message = "O nome do cliente é obrigatório")
     private String clienteNome;
 
-    private String observacao;
+    private String observacao; // não obrigatório
 
     @NotNull(message = "É necessário informar o profissional")
     private Long profissionalId; // Aqui recebemos só o ID, o Service vai buscar o objeto completo
+    // Agora o cliente manda o ID do serviço
+    @NotNull(message = "O serviço é obrigatório")
+    private Long servicoId;
 }

@@ -4,8 +4,10 @@ import com.agendei.backend.dto.AgendamentoRequestDTO;
 import com.agendei.backend.dto.AgendamentoResponseDTO;
 import com.agendei.backend.model.Agendamento;
 import com.agendei.backend.model.Profissional;
+import com.agendei.backend.model.Servico;
 import com.agendei.backend.repository.AgendamentoRepository;
 import com.agendei.backend.repository.ProfissionalRepository;
+import com.agendei.backend.repository.ServicoRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,18 +17,29 @@ public class AgendamentoService {
 
     private final AgendamentoRepository agendamentoRepository;
     private final ProfissionalRepository profissionalRepository;
+    private final ServicoRepository servicoRepository;
 
-    public AgendamentoService(AgendamentoRepository agendamentoRepository, ProfissionalRepository profissionalRepository) { // construtor de classe, realizando Injeção de dependência por construtor
+
+    public AgendamentoService(AgendamentoRepository agendamentoRepository, ProfissionalRepository profissionalRepository, ServicoRepository servicoRepository) { // construtor de classe, realizando Injeção de dependência por construtor
         this.agendamentoRepository = agendamentoRepository; // pega o objeto que foi enviado ao construtor e o guarda no atributo interno da classe. Pertmite que usa o métodos de banco de dados (buscar e salvar) em qualquer lugar dentro da classe.
         this.profissionalRepository = profissionalRepository;
+        this.servicoRepository = servicoRepository;
     }
 
     public AgendamentoResponseDTO agendar(AgendamentoRequestDTO dados) {
         // 1. Busca o profissional pelo ID (se não achar, lança erro 404)
         Profissional profissional = profissionalRepository.findById(dados.getProfissionalId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado"));
+        // 2. Busca Serviço (NOVO)
+        Servico servico = servicoRepository.findById(dados.getServicoId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Serviço não encontrado"));
 
-        // 2. REGRA DE NEGÓCIO: Verifica se já existe agendamento nesse horário para esse profissional
+        // 3. Validação: O serviço pertence ao profissional escolhido?
+        if (!servico.getProfissional().getId().equals(profissional.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este serviço não pertence a este profissional");
+        }
+
+        // 4. REGRA DE NEGÓCIO: Verifica se já existe agendamento nesse horário para esse profissional
         boolean horarioOcupado = agendamentoRepository.existsByProfissionalIdAndDataHora(
                 profissional.getId(), dados.getDataHora());
 
@@ -37,6 +50,7 @@ public class AgendamentoService {
         // 3. Cria o objeto Agendamento e define os valores
         Agendamento agendamento = new Agendamento();
         agendamento.setProfissional(profissional);
+        agendamento.setServico(servico);
         agendamento.setDataHora(dados.getDataHora());
         agendamento.setClienteNome(dados.getClienteNome());
         agendamento.setObservacao(dados.getObservacao());
