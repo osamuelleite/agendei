@@ -28,4 +28,8 @@ public class Agendamento {
     @ManyToOne
     @JoinColumn(name = "id_profissional")
     private Profissional profissional;
+
+    @ManyToOne
+    @JoinColumn(name = "id_servico")
+    private Servico servico;
 }
