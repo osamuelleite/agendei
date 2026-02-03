@@ -47,4 +47,20 @@ public class AgendamentoService {
         // 5. Transforma em DTO para devolver pro Controller
         return new AgendamentoResponseDTO(agendamentoSalvo);
     }
+    public java.util.List<AgendamentoResponseDTO> buscarMeusAgendamentos(String emailProfissional) {
+        // 1. Busca o profissional pelo email (Precisamos fazer o Cast porque o repo retorna UserDetails)
+        Profissional profissional = (Profissional) profissionalRepository.findByEmail(emailProfissional);
+
+        if (profissional == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado");
+        }
+
+        // 2. Busca a lista no banco usando o ID dele
+        var agendamentos = agendamentoRepository.findByProfissionalId(profissional.getId());
+
+        // 3. Converte a lista de Entidades para lista de DTOs
+        return agendamentos.stream()
+                .map(AgendamentoResponseDTO::new)
+                .toList();
+    }
 }
