@@ -28,7 +28,9 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests(req -> {
                     req.requestMatchers(HttpMethod.POST, "/login").permitAll(); // Libera Login
                     req.requestMatchers(HttpMethod.POST, "/profissionais").permitAll(); // Libera Cadastro
+                    req.requestMatchers(HttpMethod.POST, "/agendamentos").permitAll(); // Cliente externo não logado pode realizar um agendamento
                     req.anyRequest().authenticated(); // O resto tem que estar logado
+
                 })
                 // ADICIONAR ESTA LINHA: Coloca nosso filtro antes do filtro padrão do Spring
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
