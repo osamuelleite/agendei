@@ -31,6 +31,8 @@ public class SecurityConfigurations {
 
                     req.requestMatchers(HttpMethod.POST, "/agendamentos").permitAll(); // Cliente externo não logado pode realizar um agendamento
 
+                    req.requestMatchers(HttpMethod.POST, "/clientes").permitAll(); //Permite um novo cliente se cadastrar sem estar logado
+
                     req.requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll(); // página de documentação do swagger
 
                     req.anyRequest().authenticated(); // O resto tem que estar logado
