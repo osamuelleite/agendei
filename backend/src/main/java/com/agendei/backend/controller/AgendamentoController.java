@@ -7,6 +7,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
+import java.security.Principal;
 
 import java.security.Principal;
 import java.util.List;
@@ -14,7 +18,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/agendamentos")
 public class AgendamentoController {
-
     private final AgendamentoService service;
 
     public AgendamentoController(AgendamentoService service) {
@@ -23,9 +26,18 @@ public class AgendamentoController {
 
     // Rota Pública (Cliente marca horário)
     @PostMapping
-    public ResponseEntity<AgendamentoResponseDTO> agendar(@RequestBody @Valid AgendamentoRequestDTO dto) {
-        AgendamentoResponseDTO novoAgendamento = service.agendar(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(novoAgendamento);
+    // Adicionamos 'Principal principal' para pegar o usuário logado (pode ser null se for anônimo)
+    public ResponseEntity<AgendamentoResponseDTO> agendar(@RequestBody @Valid AgendamentoRequestDTO dados, Principal principal) {
+
+        String emailClienteLogado = (principal != null) ? principal.getName() : null;
+
+        // Passamos o email para o service
+        var agendamento = service.agendar(dados, emailClienteLogado);
+
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
+                .buildAndExpand(agendamento.getId()).toUri();
+
+        return ResponseEntity.created(uri).body(agendamento);
     }
 
     // Rota Privada (Profissional vê sua agenda)
@@ -52,4 +64,5 @@ public class AgendamentoController {
         var agendamentoAtualizado = service.cancelarAgendamento(id, principal.getName());
         return ResponseEntity.ok(agendamentoAtualizado);
     }
+
 }

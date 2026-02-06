@@ -6,11 +6,15 @@ import com.agendei.backend.model.Agendamento;
 import com.agendei.backend.model.Profissional;
 import com.agendei.backend.model.Servico;
 import com.agendei.backend.repository.AgendamentoRepository;
+import com.agendei.backend.repository.ClienteRepository;
 import com.agendei.backend.repository.ProfissionalRepository;
 import com.agendei.backend.repository.ServicoRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import com.agendei.backend.model.Cliente;
+
+import java.util.List;
 
 @Service
 public class AgendamentoService {
@@ -18,28 +22,34 @@ public class AgendamentoService {
     private final AgendamentoRepository agendamentoRepository;
     private final ProfissionalRepository profissionalRepository;
     private final ServicoRepository servicoRepository;
+    private final ClienteRepository clienteRepository; // <--- Campo Novo (Injeção)
 
-
-    public AgendamentoService(AgendamentoRepository agendamentoRepository, ProfissionalRepository profissionalRepository, ServicoRepository servicoRepository) { // construtor de classe, realizando Injeção de dependência por construtor
-        this.agendamentoRepository = agendamentoRepository; // pega o objeto que foi enviado ao construtor e o guarda no atributo interno da classe. Pertmite que usa o métodos de banco de dados (buscar e salvar) em qualquer lugar dentro da classe.
+    // Construtor atualizado com o ClienteRepository
+    public AgendamentoService(AgendamentoRepository agendamentoRepository,
+                              ProfissionalRepository profissionalRepository,
+                              ServicoRepository servicoRepository,
+                              ClienteRepository clienteRepository) {
+        this.agendamentoRepository = agendamentoRepository;
         this.profissionalRepository = profissionalRepository;
         this.servicoRepository = servicoRepository;
+        this.clienteRepository = clienteRepository;
     }
 
-    public AgendamentoResponseDTO agendar(AgendamentoRequestDTO dados) {
-        // 1. Busca o profissional pelo ID (se não achar, lança erro 404)
+    public AgendamentoResponseDTO agendar(AgendamentoRequestDTO dados, String emailClienteLogado) {
+        // 1. Busca Profissional
         Profissional profissional = profissionalRepository.findById(dados.getProfissionalId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado"));
-        // 2. Busca Serviço (NOVO)
+
+        // 2. Busca Serviço
         Servico servico = servicoRepository.findById(dados.getServicoId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Serviço não encontrado"));
 
-        // 3. Validação: O serviço pertence ao profissional escolhido?
+        // 3. Validação: O serviço pertence ao profissional?
         if (!servico.getProfissional().getId().equals(profissional.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este serviço não pertence a este profissional");
         }
 
-        // 4. REGRA DE NEGÓCIO: Verifica se já existe agendamento nesse horário para esse profissional
+        // 4. Validação de Horário
         boolean horarioOcupado = agendamentoRepository.existsByProfissionalIdAndDataHora(
                 profissional.getId(), dados.getDataHora());
 
@@ -47,58 +57,70 @@ public class AgendamentoService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Esse horário já está ocupado!");
         }
 
-        // 3. Cria o objeto Agendamento e define os valores
+        // 5. Salva Agendamento
         Agendamento agendamento = new Agendamento();
         agendamento.setProfissional(profissional);
         agendamento.setServico(servico);
         agendamento.setDataHora(dados.getDataHora());
         agendamento.setClienteNome(dados.getClienteNome());
         agendamento.setObservacao(dados.getObservacao());
+        agendamento.setStatus(com.agendei.backend.model.enums.StatusAgendamento.PENDENTE);
 
-        // 4. Salva no banco
-        Agendamento agendamentoSalvo = agendamentoRepository.save(agendamento);
+        // --- LÓGICA NOVA: VÍNCULO DO CLIENTE ---
+        if (emailClienteLogado != null) {
+            // Busca pelo email
+            var usuario = clienteRepository.findByEmail(emailClienteLogado);
 
-        // 5. Transforma em DTO para devolver pro Controller
-        return new AgendamentoResponseDTO(agendamentoSalvo);
-    }
-    public java.util.List<AgendamentoResponseDTO> buscarMeusAgendamentos(String emailProfissional) {
-        // 1. Busca o profissional pelo email (Precisamos fazer o Cast porque o repo retorna UserDetails)
-        Profissional profissional = (Profissional) profissionalRepository.findByEmail(emailProfissional);
-
-        if (profissional == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado");
+            // Verifica se quem achou é mesmo um Cliente (e não um Profissional tentando agendar pra si mesmo)
+            if (usuario instanceof Cliente) {
+                agendamento.setCliente((Cliente) usuario); // <--- A MÁGICA ACONTECE AQUI
+            }
         }
 
-        // 2. Busca a lista no banco usando o ID dele
-        var agendamentos = agendamentoRepository.findByProfissionalId(profissional.getId());
+        Agendamento agendamentoSalvo = agendamentoRepository.save(agendamento);
 
-        // 3. Converte a lista de Entidades para lista de DTOs
-        return agendamentos.stream()
-                .map(AgendamentoResponseDTO::new)
-                .toList();
+        return new AgendamentoResponseDTO(agendamentoSalvo);
     }
-    // Metodo para confirmar
+
+    public List<AgendamentoResponseDTO> buscarMeusAgendamentos(String emailUsuarioLogado) {
+
+        // 1. Buscamos no repositório de profissionais
+        // O retorno é UserDetails, então guardamos numa variável genérica
+        org.springframework.security.core.userdetails.UserDetails usuarioEncontrado = profissionalRepository.findByEmail(emailUsuarioLogado);
+
+        // 2. Verificamos: "Esse usuário que achei é, de fato, um Profissional?"
+        if (usuarioEncontrado instanceof Profissional) {
+            // Se sim, fazemos o Cast (conversão) para pegar o ID
+            Profissional profissional = (Profissional) usuarioEncontrado;
+
+            return agendamentoRepository.findByProfissionalId(profissional.getId())
+                    .stream().map(AgendamentoResponseDTO::new).toList();
+        }
+
+        // 3. Se não achou como profissional, assumimos que é Cliente e buscamos pelo e-mail
+        return agendamentoRepository.findByClienteEmail(emailUsuarioLogado)
+                .stream().map(AgendamentoResponseDTO::new).toList();
+    }
+
+    // --- MÉTODOS DE STATUS ---
+
     public AgendamentoResponseDTO confirmarAgendamento(Long idAgendamento, String emailProfissional) {
         return alterarStatus(idAgendamento, emailProfissional, com.agendei.backend.model.enums.StatusAgendamento.CONFIRMADO);
     }
 
-    // Metodo para cancelar
     public AgendamentoResponseDTO cancelarAgendamento(Long idAgendamento, String emailProfissional) {
         return alterarStatus(idAgendamento, emailProfissional, com.agendei.backend.model.enums.StatusAgendamento.CANCELADO);
     }
 
-    // Metodo auxiliar (privado) para evitar repetir código
     private AgendamentoResponseDTO alterarStatus(Long id, String emailProfissional, com.agendei.backend.model.enums.StatusAgendamento novoStatus) {
-        // 1. Busca o agendamento
         Agendamento agendamento = agendamentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado"));
 
-        // 2. SEGURANÇA: Verifica se o agendamento pertence ao profissional logado
+        // SEGURANÇA: Verifica se é o dono do agendamento
         if (!agendamento.getProfissional().getEmail().equals(emailProfissional)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para alterar esse agendamento");
         }
 
-        // 3. Atualiza e salva
         agendamento.setStatus(novoStatus);
         agendamentoRepository.save(agendamento);
 

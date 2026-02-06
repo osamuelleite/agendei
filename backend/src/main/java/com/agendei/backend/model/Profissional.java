@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 @Entity
 @Table(name = "tb_profissional")
-public class Profissional implements UserDetails { // <--- MUDANÇA 1: Implementar isso
+public class Profissional implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -21,13 +21,16 @@ public class Agendamento {
 
     private String observacao;
 
-    // --- O CAMPO NOVO QUE TINHA SUMIDO ---
     @Enumerated(EnumType.STRING)
     private StatusAgendamento status = StatusAgendamento.PENDENTE; // Nasce como PENDENTE
 
     @ManyToOne
     @JoinColumn(name = "id_profissional")
     private Profissional profissional;
+
+    @ManyToOne
+    @JoinColumn(name = "id_cliente")
+    private Cliente cliente;
 
     @ManyToOne
     @JoinColumn(name = "id_servico")

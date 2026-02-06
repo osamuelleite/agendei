@@ -1,5 +1,6 @@
 package com.agendei.backend.infra.security;
 
+import com.agendei.backend.repository.ClienteRepository; // <--- Import Novo
 import com.agendei.backend.repository.ProfissionalRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,7 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetails; // <--- Import Novo
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -17,31 +18,38 @@ import java.io.IOException;
 public class SecurityFilter extends OncePerRequestFilter {
 
     private final TokenService tokenService;
-    private final ProfissionalRepository repository;
+    private final ProfissionalRepository profissionalRepository;
+    private final ClienteRepository clienteRepository; // <--- Repositório Novo
 
-    public SecurityFilter(TokenService tokenService, ProfissionalRepository repository) {
+    // Construtor atualizado
+    public SecurityFilter(TokenService tokenService, ProfissionalRepository profissionalRepository, ClienteRepository clienteRepository) {
         this.tokenService = tokenService;
-        this.repository = repository;
+        this.profissionalRepository = profissionalRepository;
+        this.clienteRepository = clienteRepository;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        // 1. Recupera o token do cabeçalho (se houver)
         var tokenJWT = recuperarToken(request);
 
         if (tokenJWT != null) {
-            // 2. Valida o token e pega o e-mail
-            var subject = tokenService.getSubject(tokenJWT);
+            var subject = tokenService.getSubject(tokenJWT); // Pega o e-mail de dentro do token
 
-            // 3. Busca o usuário no banco
-            UserDetails usuario = repository.findByEmail(subject);
+            // 1. Tenta achar na tabela de Profissionais
+            UserDetails usuario = profissionalRepository.findByEmail(subject);
 
-            // 4. Diz para o Spring Security: "Esse usuário está logado!"
-            var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            // 2. Se não achou, tenta na tabela de Clientes (CASCATA)
+            if (usuario == null) {
+                usuario = clienteRepository.findByEmail(subject);
+            }
+
+            // 3. Se achou alguém (seja Profissional ou Cliente), libera a entrada
+            if (usuario != null) {
+                var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
-        // 5. Segue o baile (passa para o próximo filtro ou controller)
         filterChain.doFilter(request, response);
     }
 
